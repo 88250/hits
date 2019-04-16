@@ -75,7 +75,7 @@ func hit(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	if strings.Contains(owner, "/") || strings.Contains(repo, "/") || !strings.Contains(repo, ".svg") {
-		c.Status(404)
+		c.String(http.StatusBadRequest, "参数异常，用法请参考 https://github.com/b3log/hits")
 
 		return
 	}
