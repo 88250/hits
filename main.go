@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -106,6 +107,7 @@ func writeData(fileName string) (count int, countStr string) {
 	if "" == countStr {
 		countStr = "1"
 	}
+	countStr = strings.TrimSpace(countStr)
 	count = 1
 	if count, err = strconv.Atoi(countStr); nil != err {
 		logger.Errorf("read count of file [%s] failed  [%s]", dataFilePath, err.Error())
