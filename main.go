@@ -17,9 +17,12 @@
 package main
 
 import (
+	"flag"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -29,12 +32,26 @@ import (
 
 var logger *Logger
 
+var dirPath = "./"
+
 func init() {
 	rand.Seed(time.Now().Unix())
 
 	SetLevel("info")
 	logger = NewLogger(os.Stdout)
 	gin.SetMode(gin.ReleaseMode)
+
+	dir := flag.String("dir", "", "path of data dir directory, for example /opt/hits/data")
+	if "" != *dir {
+		dirPath = *dir
+	} else {
+		dirPath = filepath.Join(UserHome(), "hits")
+		if !IsExist(dirPath) {
+			if err := os.Mkdir(dirPath, 0644); nil != err {
+				logger.Fatalf("create data directory [%s] failed [%s]", dirPath, err.Error())
+			}
+		}
+	}
 }
 
 func mapRoutes() *gin.Engine {
@@ -50,26 +67,57 @@ func mapRoutes() *gin.Engine {
 }
 
 var locker = sync.Mutex{}
-var hitMap = map[string]int{}
 
 func hit(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
-	key := owner + "/" + repo
+	key := owner + "-" + repo
 
 	locker.Lock()
-	count, ok := 1, false
-	if count, ok = hitMap[key]; ok {
-		hitMap[key] = count + 1
-	} else {
-		hitMap[key] = count
-	}
+	_, count := writeData(key)
 	locker.Unlock()
 
 	svg := `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="88" height="20"><g shape-rendering="crispEdges"><path fill="#555" d="M0 0h37v20H0z"/><path fill="#4c1" d="M37 0h51v20H37z"/></g><g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="110">`
 	svg += `<text x="195" y="140" transform="scale(.1)">hits</text>`
-	svg += `<text x="615" y="140" transform="scale(.1)">` + strconv.Itoa(count) + `</text></g></svg>`
+	svg += `<text x="615" y="140" transform="scale(.1)">` + count + `</text></g></svg>`
 	c.Data(200, "image/svg+xml;charset=utf-8", []byte(svg))
+}
+
+func writeData(fileName string) (count int, countStr string) {
+	count, countStr = 1, "1"
+	var err error
+
+	dataFilePath := dirPath + "/" + fileName
+	var f *os.File
+	if f, err = os.OpenFile(dataFilePath, os.O_CREATE|os.O_RDWR, 0664); nil != err {
+		logger.Errorf("open file [%s] failed [%s]", dataFilePath, err.Error())
+		return
+	}
+	if bytes, err := ioutil.ReadAll(f); nil != err {
+		logger.Errorf("read file [%s] failed [%s]", dataFilePath, err.Error())
+		return
+	} else {
+		countStr = string(bytes)
+	}
+	f.Close()
+
+	if "" == countStr {
+		countStr = "1"
+	}
+	count = 1
+	if count, err = strconv.Atoi(countStr); nil != err {
+		logger.Errorf("read count of file [%s] failed  [%s]", dataFilePath, err.Error())
+		return
+	}
+
+	count++
+	countStr = strconv.Itoa(count)
+	if err = ioutil.WriteFile(dataFilePath, []byte(countStr), 0644); nil != err {
+		logger.Errorf("write count to file [%s] failed [%s]", dataFilePath, err.Error())
+		return
+	}
+
+	return
 }
 
 func main() {
@@ -79,6 +127,6 @@ func main() {
 		Handler: router,
 	}
 
-	logger.Infof("hits is running")
+	logger.Infof("hits is running, data directory is [" + dirPath + "]")
 	server.ListenAndServe()
 }
