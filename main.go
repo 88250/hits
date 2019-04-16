@@ -74,6 +74,13 @@ var locker = sync.Mutex{}
 func hit(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
+	if strings.Contains(owner, "/") || strings.Contains(repo, "/") || !strings.Contains(repo, ".svg") {
+		c.Status(404)
+
+		return
+	}
+
+	repo = repo[:strings.LastIndex(repo, ".svg")]
 	key := owner + "-" + repo
 
 	locker.Lock()
