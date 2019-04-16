@@ -87,8 +87,7 @@ func hit(c *gin.Context) {
 	_, count := writeData(key)
 	locker.Unlock()
 
-	c.Header("cache-control", "no-cache")
-	c.Header("cache-control", "no-store")
+	c.Header("cache-control", "max-age=0, no-cache, no-store, must-revalidate")
 
 	svg := `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="88" height="20"><g shape-rendering="crispEdges"><path fill="#555" d="M0 0h37v20H0z"/><path fill="#4c1" d="M37 0h51v20H37z"/></g><g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="110">`
 	svg += `<text x="195" y="140" transform="scale(.1)">hits</text>`
