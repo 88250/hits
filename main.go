@@ -42,6 +42,8 @@ func init() {
 	gin.SetMode(gin.ReleaseMode)
 
 	dir := flag.String("dir", "", "path of data dir directory, for example /opt/hits/data")
+	flag.Parse()
+
 	if "" != *dir {
 		dirPath = *dir
 	} else {
