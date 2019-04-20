@@ -81,10 +81,10 @@ func hit(c *gin.Context) {
 	}
 
 	repo = repo[:strings.LastIndex(repo, ".svg")]
-	key := owner + "-" + repo
+	fileName := owner + "~" + repo
 
 	locker.Lock()
-	_, count := writeData(key)
+	_, count := writeData(fileName)
 	locker.Unlock()
 
 	c.Header("cache-control", "max-age=0, no-cache, no-store, must-revalidate")
