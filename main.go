@@ -28,18 +28,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/88250/gulu"
 	"github.com/gin-gonic/gin"
 )
 
-var logger *Logger
+var logger *gulu.Logger
 
 var dirPath = "./"
 
 func init() {
 	rand.Seed(time.Now().Unix())
 
-	SetLevel("info")
-	logger = NewLogger(os.Stdout)
+	gulu.Log.SetLevel("info")
+	logger = gulu.Log.NewLogger(os.Stdout)
 	gin.SetMode(gin.ReleaseMode)
 
 	dir := flag.String("dir", "", "path of data dir directory, for example /opt/hits/data")
@@ -48,8 +49,9 @@ func init() {
 	if "" != *dir {
 		dirPath = *dir
 	} else {
-		dirPath = filepath.Join(UserHome(), "hits")
-		if !IsExist(dirPath) {
+		home, _ := gulu.OS.Home()
+		dirPath = filepath.Join(home, "hits")
+		if !gulu.File.IsExist(dirPath) {
 			if err := os.Mkdir(dirPath, 0644); nil != err {
 				logger.Fatalf("create data directory [%s] failed [%s]", dirPath, err.Error())
 			}
@@ -63,7 +65,7 @@ func mapRoutes() *gin.Engine {
 
 	ret.GET("/:owner/:repo", hit)
 	ret.NoRoute(func(c *gin.Context) {
-		c.String(http.StatusOK, "The piper will lead us to reason.\n\n欢迎访问黑客与画家的社区 https://hacpai.com")
+		c.String(http.StatusOK, "The piper will lead us to reason.\n\n记录生活，连接点滴 https://ld246.com")
 	})
 
 	return ret
