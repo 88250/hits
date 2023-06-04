@@ -18,7 +18,8 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
+	"fmt"
+	"github.com/dustin/go-humanize"
 	"math/rand"
 	"net/http"
 	"os"
@@ -77,7 +78,7 @@ func hit(c *gin.Context) {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	if strings.Contains(owner, "/") || strings.Contains(repo, "/") || !strings.Contains(repo, ".svg") {
-		c.String(http.StatusBadRequest, "参数异常，用法请参考 https://github.com/b3log/hits")
+		c.String(http.StatusBadRequest, "参数异常，用法请参考 https://github.com/88250/hits")
 
 		return
 	}
@@ -86,48 +87,42 @@ func hit(c *gin.Context) {
 	fileName := owner + "~" + repo
 
 	locker.Lock()
-	_, count := writeData(fileName)
+	count := writeData(fileName)
 	locker.Unlock()
+	countStr := humanize.SI(count, "")
 
 	c.Header("cache-control", "max-age=0, no-cache, no-store, must-revalidate")
-
 	svg := `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="88" height="20"><g shape-rendering="crispEdges"><path fill="#555" d="M0 0h37v20H0z"/><path fill="#4c1" d="M37 0h51v20H37z"/></g><g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="110">`
 	svg += `<text x="195" y="140" transform="scale(.1)">hits</text>`
-	svg += `<text x="615" y="140" transform="scale(.1)">` + count + `</text></g></svg>`
+	svg += `<text x="615" y="140" transform="scale(.1)">` + countStr + `</text></g></svg>`
 	c.Data(200, "image/svg+xml;charset=utf-8", []byte(svg))
 }
 
-func writeData(fileName string) (count int, countStr string) {
-	count, countStr = 1, "1"
+func writeData(fileName string) (count float64) {
+	count = 1
+	countStr := "1"
 	var err error
 
 	dataFilePath := dirPath + "/" + fileName
-	var f *os.File
-	if f, err = os.OpenFile(dataFilePath, os.O_CREATE|os.O_RDWR, 0664); nil != err {
-		logger.Errorf("open file [%s] failed [%s]", dataFilePath, err.Error())
-		return
-	}
-	if bytes, err := ioutil.ReadAll(f); nil != err {
+	if bytes, err := os.ReadFile(dataFilePath); nil != err {
 		logger.Errorf("read file [%s] failed [%s]", dataFilePath, err.Error())
 		return
 	} else {
 		countStr = string(bytes)
 	}
-	f.Close()
 
 	if "" == countStr {
 		countStr = "1"
 	}
 	countStr = strings.TrimSpace(countStr)
-	count = 1
-	if count, err = strconv.Atoi(countStr); nil != err {
+	if count, err = strconv.ParseFloat(countStr, 64); nil != err {
 		logger.Errorf("read count of file [%s] failed  [%s]", dataFilePath, err.Error())
 		return
 	}
 
 	count++
-	countStr = strconv.Itoa(count)
-	if err = ioutil.WriteFile(dataFilePath, []byte(countStr), 0644); nil != err {
+	countStr = fmt.Sprintf("%s", humanize.Ftoa(count))
+	if err = os.WriteFile(dataFilePath, []byte(countStr), 0644); nil != err {
 		logger.Errorf("write count to file [%s] failed [%s]", dataFilePath, err.Error())
 		return
 	}
