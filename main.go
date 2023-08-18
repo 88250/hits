@@ -105,11 +105,13 @@ func writeData(fileName string) (count float64) {
 	var err error
 
 	dataFilePath := dirPath + "/" + fileName
-	if bytes, err := os.ReadFile(dataFilePath); nil != err {
-		logger.Errorf("read file [%s] failed [%s]", dataFilePath, err.Error())
-		return
-	} else {
-		countStr = string(bytes)
+	if gulu.File.IsExist(dataFilePath) {
+		if bytes, err := os.ReadFile(dataFilePath); nil != err {
+			logger.Errorf("read file [%s] failed [%s]", dataFilePath, err.Error())
+			return
+		} else {
+			countStr = string(bytes)
+		}
 	}
 
 	if "" == countStr {
