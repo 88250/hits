@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"math/rand"
 	"net/http"
 	"os"
@@ -30,6 +29,7 @@ import (
 	"time"
 
 	"github.com/88250/gulu"
+	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 )
 
